@@ -7,6 +7,7 @@ use std::{
 };
 
 use clap::builder::Str;
+use colored::Colorize;
 use log::info;
 
 use crate::{
@@ -52,7 +53,11 @@ impl MoxideProj {
         let name: String = name.into();
         let encoded_name = urlencoding::encode(&name);
 
-        info!("Encoded new page name `{name}` into `{encoded_name}`");
+        info!(
+            "Encoded new page name {} into {}",
+            name.bold(),
+            encoded_name.bold()
+        );
 
         let page_path = {
             let mut t = self.src();
@@ -60,7 +65,16 @@ impl MoxideProj {
             t
         };
         fs::create_dir_all(&page_path)?;
-        info!("Created page in {}", page_path.to_str().unwrap());
+        info!(
+            "Created page in {}",
+            page_path
+                .canonicalize()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .bold()
+                .underline()
+        );
 
         let index_md_path = {
             let mut index_path = page_path.clone();
@@ -78,7 +92,13 @@ impl MoxideProj {
         index_md_file.write_all(index_md_content.as_bytes())?;
         info!(
             "Created index markdown file at {}",
-            index_md_path.to_str().unwrap()
+            index_md_path
+                .canonicalize()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .bold()
+                .underline()
         );
 
         Ok(page_path)
@@ -91,12 +111,19 @@ impl MoxideProj {
         let name: String = name.into();
         let encoded_name = urlencoding::encode(&name);
 
-        info!("Encoded new project name `{name}` into `{encoded_name}`");
+        info!(
+            "Encoded new project name {} into {}",
+            name.bold(),
+            encoded_name.bold()
+        );
 
         // Encoded to safe path
         let proj = PathBuf::from_iter([encoded_name.to_string()]);
 
-        info!("Created new Moxide project at: {}", proj.to_str().unwrap());
+        info!(
+            "Created new Moxide project at: {}",
+            proj.to_str().unwrap().bold().underline()
+        );
 
         fs::create_dir_all(&proj)?;
 

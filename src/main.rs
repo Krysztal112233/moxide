@@ -1,3 +1,5 @@
+use std::env;
+
 use clap::{arg, ArgAction, ArgMatches, Command};
 use log::error;
 use proj::MoxideProj;
@@ -13,6 +15,10 @@ mod util;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    if let Err(env::VarError::NotPresent) = env::var("RUST_LOG") {
+        env::set_var("RUST_LOG", "info");
+    }
+
     pretty_env_logger::init();
 
     let matches = app();
