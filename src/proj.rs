@@ -1,12 +1,9 @@
 use std::{
-    borrow::Borrow,
     fs,
     io::Write,
     path::{Path, PathBuf},
-    string,
 };
 
-use clap::builder::Str;
 use colored::Colorize;
 use log::info;
 
@@ -137,6 +134,7 @@ impl MoxideProj {
             site: name.clone(),
             description: "Hello,World!".to_owned(),
             theme: "".to_owned(),
+            renders: Vec::new(),
         })?;
         manifest_file.write_all(manifest_content.as_bytes())?;
 
