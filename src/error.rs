@@ -15,6 +15,9 @@ pub enum Error {
     #[error("{0}")]
     TomlSer(#[from] toml::ser::Error),
 
+    #[error("render not found: {0}")]
+    RenderNotFound(String),
+
     #[error("invalid data block")]
     InvalidDataBlock,
 

@@ -1,4 +1,9 @@
-use std::{collections::HashSet, fs, path::PathBuf, sync::OnceLock};
+use std::{
+    collections::HashSet,
+    fs,
+    path::{Path, PathBuf},
+    sync::OnceLock,
+};
 
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
@@ -11,9 +16,11 @@ pub(crate) struct MarkdownMeta {
     pub(crate) date: DateTime<Local>,
 
     #[serde(default = "HashSet::default")]
+    #[serde(skip_serializing_if = "HashSet::is_empty")]
     pub(crate) tag: HashSet<String>,
 
     #[serde(default = "default_renderer")]
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub(crate) renderer: String,
 }
 
@@ -21,12 +28,33 @@ fn default_renderer() -> String {
     "page".to_owned()
 }
 
+pub(crate) struct MarkdownEntryContext {
+    pub(crate) index: PathBuf,
+
+    pub(crate) output: PathBuf,
+
+    pub(crate) entry: MarkdownEntry,
+}
+
+impl MarkdownEntryContext {
+    pub(crate) fn try_new<P>(index: P, output: P) -> Result<MarkdownEntryContext>
+    where
+        P: AsRef<Path>,
+    {
+        Ok(MarkdownEntryContext {
+            index: index.as_ref().to_path_buf(),
+            output: output.as_ref().to_path_buf(),
+            entry: MarkdownEntry::try_from(index.as_ref().to_path_buf())?,
+        })
+    }
+}
+
 pub(crate) struct MarkdownEntry {
-    meta: MarkdownMeta,
+    pub(crate) meta: MarkdownMeta,
 
-    description: String,
+    pub(crate) description: String,
 
-    content: String,
+    pub(crate) content: String,
 }
 
 static REGEX: OnceLock<regex::Regex> = OnceLock::new();
@@ -68,10 +96,19 @@ impl MarkdownEntry {
     }
 
     pub(crate) fn into_document(self) -> Result<String> {
-        let meta = toml::to_string_pretty(&self.meta)?;
+        let meta = toml::to_string_pretty(&self.meta)?.trim().to_owned();
         let description = format!("{}\n<!-- more -->", self.description);
 
-        let result = ["+++", &meta, "+++", &description, &self.content].join("\n");
+        let result = [
+            format!(
+                "+++
+{meta}
++++"
+            ),
+            description,
+            self.content,
+        ]
+        .join("\n\n");
 
         Ok(result)
     }

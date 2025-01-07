@@ -1,28 +1,22 @@
-use std::{path::PathBuf, str::FromStr, sync::OnceLock};
+use clap::{builder::PossibleValue, ValueEnum};
 
-use parking_lot::RwLock;
-use uuid::Uuid;
-
-pub(crate) fn tmp_output_dir() -> PathBuf {
-    let mut tmp = std::env::temp_dir();
-    tmp.push(format!("moxide-{}", Uuid::new_v4()));
-    tmp
+#[derive(Debug, Clone)]
+pub(crate) enum CreateType {
+    Page,
+    Bundle,
+    Project,
 }
 
-static BASE_DIR: OnceLock<RwLock<&str>> = OnceLock::new();
+impl ValueEnum for CreateType {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[CreateType::Page, CreateType::Bundle, CreateType::Project]
+    }
 
-pub(crate) fn base_dir() -> PathBuf {
-    PathBuf::from_str(&BASE_DIR.get_or_init(|| RwLock::new(".")).read()).unwrap()
-}
-
-pub(crate) fn src_dir() -> PathBuf {
-    let mut path = base_dir();
-    path.push("src");
-    path
-}
-
-pub(crate) fn output_dir() -> PathBuf {
-    let mut path = base_dir();
-    path.push("output");
-    path
+    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
+        Some(match self {
+            CreateType::Page => PossibleValue::new("page"),
+            CreateType::Bundle => PossibleValue::new("bundle"),
+            CreateType::Project => PossibleValue::new("project"),
+        })
+    }
 }

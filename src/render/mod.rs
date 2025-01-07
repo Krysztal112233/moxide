@@ -1,22 +1,28 @@
 use std::{
+    future::Future,
     ops::Deref,
-    path::{Path, PathBuf},
+    pin::Pin,
     sync::{Arc, OnceLock},
 };
 
 use async_trait::async_trait;
 use bundle::BundleRender;
+use colored::Colorize;
+use log::{info, trace};
 use page::PageRender;
 use parking_lot::RwLock;
 
-use crate::error::Result;
+use crate::{
+    error::{Error, Result},
+    mkentry::MarkdownEntryContext,
+};
 
 mod bundle;
 mod page;
 
 #[async_trait]
-pub(crate) trait Render {
-    async fn render(&self, input: PathBuf, output: PathBuf) -> Result<()>;
+pub(crate) trait Render: Send + Sync {
+    async fn render(&self, ctx: MarkdownEntryContext) -> Result<()>;
 }
 
 #[derive(Default)]
@@ -67,17 +73,29 @@ impl RenderRegistry {
         self.map.get(key).cloned()
     }
 
-    /// Convert `index.md` into prepared render
+    /// Convert [`MarkdownEntryContext`] into prepared render
     ///
     /// ## Usage
     ///
-    pub(crate) fn to_prepared_render<P>(
-        entry_path: P,
-        output: P,
-    ) -> Result<Box<dyn Fn() -> Result<()>>>
-    where
-        P: AsRef<Path>,
-    {
-        todo!()
+    pub(crate) fn to_prepared_render(
+        ctx: MarkdownEntryContext,
+    ) -> Result<Pin<Box<dyn Future<Output = Result<()>> + Send>>> {
+        let rendering = async move {
+            let renderer = &ctx.entry.meta.renderer;
+            trace!(
+                "Detected render `{}` for entry `{}`.",
+                ctx.entry.meta.renderer.italic().underline(),
+                ctx.entry.meta.title.bold()
+            );
+
+            let render = Self::new().fetch(renderer);
+
+            match render {
+                Some(render) => render.render(ctx).await,
+                None => Err(Error::RenderNotFound(renderer.to_owned())),
+            }
+        };
+
+        Ok(Box::pin(rendering))
     }
 }
